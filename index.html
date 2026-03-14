@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0a0a"/>
+<title>골프장 찾기</title>
+<link rel="manifest" href="/courseapp/manifest.json"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --card: #1c1c1c;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.15);
+  --gold: #c9a84c;
+  --gold-light: #e8c96a;
+  --text: #f0f0f0;
+  --muted: #888;
+  --dim: #555;
+  --red: #e05050;
+  --green: #4caf7d;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 레이아웃 ── */
+.app {
+  min-height: 100dvh;
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 0 16px env(safe-area-inset-bottom);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 헤더 ── */
+.header {
+  padding: 52px 0 28px;
+  position: relative;
+}
+.header-badge {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 20px;
+  padding: 3px 10px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+.header h1 span { color: var(--gold-light); }
+.header p {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── 검색창 ── */
+.search-wrap {
+  position: relative;
+  margin-bottom: 24px;
+}
+.search-wrap::before {
+  content: '⛳';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 15px;
+  padding: 14px 100px 14px 44px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.search-input::placeholder { color: var(--dim); }
+.search-input:focus { border-color: var(--gold); }
+.search-btn {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  bottom: 6px;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0 18px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.search-btn:hover { background: var(--gold-light); }
+.search-btn:active { transform: scale(0.97); }
+.search-btn:disabled { background: var(--dim); color: var(--muted); cursor: not-allowed; transform: none; }
+
+/* ── 상태 메시지 ── */
+.status {
+  font-size: 13px;
+  color: var(--muted);
+  min-height: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status.err { color: var(--red); }
+
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 결과 카드 ── */
+.result-card {
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+  animation: fadeUp 0.3s ease;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.result-head {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.result-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold-light);
+  line-height: 1.3;
+}
+.result-region {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.dl-btn {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dl-btn:hover { background: var(--gold); color: #000; }
+
+/* ── 코스 섹션 ── */
+.course-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.course-section:last-child { border-bottom: none; }
+.course-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.course-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.badge {
+  font-size: 11px;
+  background: rgba(201,168,76,0.12);
+  color: var(--gold);
+  border-radius: 20px;
+  padding: 2px 8px;
+  border: 1px solid rgba(201,168,76,0.25);
+}
+
+/* ── 스코어카드 테이블 ── */
+.sc-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.sc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 360px;
+}
+.sc-table th {
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  font-weight: 600;
+  padding: 5px 0;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.sc-table td {
+  padding: 5px 0;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.sc-table tr:last-child td { border-bottom: none; }
+.sc-table .row-label {
+  color: var(--muted);
+  font-size: 11px;
+  padding-left: 8px;
+  text-align: left;
+}
+.sc-table .sum-cell {
+  font-weight: 700;
+  color: var(--gold-light);
+  background: rgba(201,168,76,0.06);
+}
+.sc-table .total-cell {
+  font-weight: 700;
+  color: var(--gold-light);
+}
+.spacer-row { margin-top: 8px; }
+
+/* ── 예시 칩 ── */
+.example-label {
+  font-size: 12px;
+  color: var(--dim);
+  margin-bottom: 10px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.chip:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── 푸터 ── */
+.footer {
+  margin-top: auto;
+  padding: 24px 0 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--dim);
+}
+.footer span { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-badge">작은앱공방</div>
+    <h1>골프장 <span>찾기</span></h1>
+    <p>골프장명을 검색하면 스코어카드 데이터를<br>골프일기 앱용 JSON으로 저장해드립니다.</p>
+  </div>
+
+  <div class="search-wrap">
+    <input class="search-input" id="q" type="text"
+      placeholder="예) 리베라CC, Tagaytay Highlands, 캐슬파인..."
+      autocomplete="off" autocorrect="off" spellcheck="false"/>
+    <button class="search-btn" id="searchBtn" onclick="doSearch()">검색</button>
+  </div>
+
+  <div class="example-label">검색 예시</div>
+  <div class="chips" id="chips"></div>
+
+  <div class="status" id="status"></div>
+  <div id="results"></div>
+
+  <div class="footer">
+    <span>작은앱공방</span> · 골프장 찾기<br>
+    골프일기 앱과 함께 사용하세요
+  </div>
+
+</div>
+
+<script>
+const EXAMPLES = [
+  '리베라CC', '캐슬파인 골프클럽', '프리스틴밸리',
+  'Tagaytay Highlands', 'Tagaytay Midlands', 'Orchard Golf'
+];
+
+(function initChips() {
+  const wrap = document.getElementById('chips');
+  EXAMPLES.forEach(function(ex) {
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.textContent = ex;
+    el.onclick = function() {
+      document.getElementById('q').value = ex;
+      doSearch();
+    };
+    wrap.appendChild(el);
+  });
+})();
+
+document.getElementById('q').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doSearch();
+});
+
+function setStatus(msg, isErr) {
+  const el = document.getElementById('status');
+  el.className = 'status' + (isErr ? ' err' : '');
+  el.innerHTML = msg;
+}
+
+function setLoading(on) {
+  const btn = document.getElementById('searchBtn');
+  btn.disabled = on;
+  btn.textContent = on ? '검색 중...' : '검색';
+}
+
+async function doSearch() {
+  const q = document.getElementById('q').value.trim();
+  if (!q) return;
+  setLoading(true);
+  setStatus('<div class="spinner"></div> <span>' + esc(q) + ' 검색 중...</span>');
+  document.getElementById('results').innerHTML = '';
+
+  const prompt = `You are a golf course data assistant. The user wants scorecard data for: "${q}"
+
+Search GolfPass (golfpass.com/travel-advisor/courses/) for this golf course and return hole-by-hole scorecard data.
+
+Return ONLY a valid JSON object with no markdown, no code fences, no explanation:
+{
+  "clubName": "full official name",
+  "region": "city or province name",
+  "country": "2-letter code e.g. KR, PH, US",
+  "courses": [
+    {
+      "name": "course name (e.g. Lake/Valley or 정규코스)",
+      "par": 72,
+      "tee": "tee name used (Champion / Gold / Blue etc)",
+      "holes": [
+        {"no":1,"par":4,"yard":405,"hc":6},
+        ...exactly 18 holes
+      ]
+    }
+  ]
+}
+
+Rules:
+- Use Champion or Gold tee (longest tee with full hc data available)
+- If GolfPass lists the course as 9-hole sections, combine into one 18-hole array
+- If multiple courses exist (e.g. Palmer + Player), list all in "courses" array
+- All yardages in yards (not meters)
+- hc = stroke index 1-18
+- If course not found: {"error":"not found","message":"reason"}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'API 오류 (' + res.status + ')');
+    }
+
+    const data = await res.json();
+    const text = data.content.map(function(b) { return b.text || ''; }).join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    if (parsed.error) {
+      setStatus('골프장을 찾을 수 없습니다. ' + (parsed.message || ''), true);
+      setLoading(false);
+      return;
+    }
+
+    setStatus('');
+    renderResult(parsed);
+  } catch(e) {
+    setStatus(e.message, true);
+  }
+  setLoading(false);
+}
+
+function renderResult(data) {
+  const container = document.getElementById('results');
+  const card = document.createElement('div');
+  card.className = 'result-card';
+
+  // 헤더
+  const head = document.createElement('div');
+  head.className = 'result-head';
+  head.innerHTML =
+    '<div>' +
+      '<div class="result-name">' + esc(data.clubName) + '</div>' +
+      '<div class="result-region">' + esc(data.region || '') + (data.country ? ' · ' + esc(data.country) : '') + '</div>' +
+    '</div>' +
+    '<button class="dl-btn" id="dlBtn">JSON 저장</button>';
+  card.appendChild(head);
+
+  head.querySelector('#dlBtn').onclick = function() { downloadJSON(data); };
+
+  // 코스별 렌더링
+  (data.courses || []).forEach(function(c) {
+    const sec = document.createElement('div');
+    sec.className = 'course-section';
+
+    const totalYd = (c.holes || []).reduce(function(s, h) { return s + (h.yard || 0); }, 0);
+
+    sec.innerHTML =
+      '<div class="course-header">' +
+        '<span class="course-title">' + esc(c.name) + '</span>' +
+        '<span class="badge">Par ' + c.par + '</span>' +
+        '<span class="badge">' + totalYd.toLocaleString() + 'yd</span>' +
+        (c.tee ? '<span class="badge">' + esc(c.tee) + '</span>' : '') +
+      '</div>' +
+      buildScorecardHTML(c.holes || []);
+
+    card.appendChild(sec);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(card);
+}
+
+function buildScorecardHTML(holes) {
+  function row9(arr, key, label, cls) {
+    var sum = arr.reduce(function(s, h) { return s + (h[key] || 0); }, 0);
+    var cells = arr.map(function(h) { return '<td>' + (h[key] !== undefined ? h[key] : '-') + '</td>'; }).join('');
+    return '<tr><td class="row-label">' + label + '</td>' + cells +
+      '<td class="sum-cell' + (cls ? ' ' + cls : '') + '">' + (key === 'hc' ? '-' : sum) + '</td></tr>';
+  }
+
+  var front = holes.slice(0, 9);
+  var back  = holes.slice(9, 18);
+
+  var hdrs9 = function(start) {
+    var ths = '';
+    for (var i = start; i < start + 9; i++) ths += '<th>' + i + '</th>';
+    return ths;
+  };
+
+  return (
+    '<div class="sc-wrap">' +
+    '<table class="sc-table">' +
+    '<thead><tr><th></th>' + hdrs9(1) + '<th>OUT</th></tr></thead>' +
+    '<tbody>' +
+    row9(front, 'par',  'Par',  '') +
+    row9(front, 'yard', 'Yd',   '') +
+    row9(front, 'hc',   'H/C',  '') +
+    '</tbody></table>' +
+    '</div>' +
+    '<div class="sc-wrap" style="margin-top:6px;">' +
+    '<table class="sc-table">' +
+    '<thead><tr><th></th>' + hdrs9(10) + '<th>IN</th></tr></thead>' +
+    '<tbody>' +
+    row9(back, 'par',  'Par',  '') +
+    row9(back, 'yard', 'Yd',   '') +
+    row9(back, 'hc',   'H/C',  '') +
+    '</tbody></table>' +
+    '</div>'
+  );
+}
+
+function downloadJSON(data) {
+  // 골프일기 앱 포맷으로 변환
+  var output = {
+    clubName: data.clubName,
+    courses: (data.courses || []).map(function(c) {
+      return {
+        name: c.name,
+        par: c.par,
+        holes: c.holes
+      };
+    })
+  };
+  var blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = (data.clubName || 'course').replace(/[\\/:"*?<>|]/g, '_') + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/courseapp/sw.js');
+  });
+}
+</script>
+</body>
+</html>

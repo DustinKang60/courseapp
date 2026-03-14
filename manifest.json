@@ -1,0 +1,14 @@
+{
+  "name": "골프장 찾기",
+  "short_name": "골프장 찾기",
+  "description": "골프장 스코어카드를 검색하여 골프일기 앱용 JSON으로 저장",
+  "start_url": "/courseapp/",
+  "scope": "/courseapp/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "/golfapp/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/golfapp/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
